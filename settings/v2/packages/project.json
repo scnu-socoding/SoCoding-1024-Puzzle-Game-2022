@@ -1,0 +1,11 @@
+{
+  "general": {
+    "designResolution": {
+      "width": 1920,
+      "height": 1080,
+      "fitWidth": true,
+      "fitHeight": false
+    },
+    "renderPipeline": "5d45ba66-829a-46d3-948e-2ed3fa7ee421"
+  }
+}

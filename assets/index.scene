@@ -10,7 +10,7 @@
   },
   {
     "__type__": "cc.Scene",
-    "_name": "",
+    "_name": "index",
     "_objFlags": 0,
     "_parent": null,
     "_children": [
@@ -28,7 +28,7 @@
     "_globals": {
       "__id__": 7
     },
-    "_id": "f46876e4-e81b-4931-b493-6d367be385e7"
+    "_id": "b138e37d-2eb4-4ab9-9b89-0772c1b5c61e"
   },
   {
     "__type__": "cc.Node",
