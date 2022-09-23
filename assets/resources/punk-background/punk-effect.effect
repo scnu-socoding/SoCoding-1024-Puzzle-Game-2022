@@ -1,0 +1,293 @@
+// Copyright (c) 2017-2020 Xiamen Yaji Software Co., Ltd.
+CCEffect %{
+  techniques:
+  - passes:
+    - vert: sprite-vs:vert
+      frag: sprite-fs:frag
+      priority: max - 11
+      depthStencilState:
+        depthTest: false
+        depthWrite: false
+      blendState:
+        targets:
+        - blend: true
+          blendSrc: src_alpha
+          blendDst: one_minus_src_alpha
+          blendDstAlpha: one_minus_src_alpha
+      rasterizerState:
+        cullMode: none
+      properties:
+        mainColor:   { value: [1, 1, 1, 1], editor: { type: color }}
+        noiseMap: { value: grey }
+}%
+
+CCProgram sprite-vs %{
+  precision highp float;
+  #include <builtin/uniforms/cc-global>
+
+  in vec3 a_position;
+  in vec2 a_texCoord;
+  in vec4 a_color;
+
+  out vec4 color;
+  out vec2 uv0;
+
+  vec4 vert () {
+    vec4 pos = vec4(a_position, 1);
+
+    pos = cc_matViewProj * pos;
+
+    uv0 = a_texCoord;
+
+    color = a_color;
+
+    return pos;
+  }
+}%
+
+CCProgram sprite-fs %{
+  precision highp float;
+  #include <builtin/internal/embedded-alpha>
+  #include <builtin/internal/sprite-texture>
+  #include <builtin/uniforms/cc-global>
+
+  uniform sampler2D noiseMap;
+
+  in vec4 color;
+  in vec2 uv0;
+
+  uniform Constant {
+    vec4 mainColor;
+  };
+
+  #define PI 3.14159 
+
+  // Slight fish eye effect, bulge in the middle
+  vec2 deformUv(vec2 uv) 
+  {
+    float yMul = 0.92 - 0.08 * sin(uv.x * PI);
+              
+      if(uv.y >= 0.5)
+      {
+        return vec2(uv.x, yMul*(uv.y-0.5)+0.5 );
+      }
+      else
+      {
+        return vec2(uv.x, 0.5+yMul*(uv.y-0.5));
+      }
+  }
+
+  // Intensity of the image is faded around the edges
+  float edgeIntensity(vec2 uv)
+  {
+    float edgeIntensityX = 1.0;
+      if( uv.x < 0.1)
+      {
+        edgeIntensityX = 0.7 + 0.3*(uv.x/0.1);
+      }
+      else if( uv.x > 0.90)   
+      {
+        edgeIntensityX = 0.7 + 0.3*((1.0-uv.x)/0.1);
+      }
+          
+      float edgeIntensityY = 1.0;
+      if( uv.y < 0.15)
+      {
+        edgeIntensityY = 0.6 + 0.4*(uv.y/0.15);
+      }
+      else if( uv.y > 0.85)   
+      {
+        edgeIntensityY = 0.6 + 0.4*((1.0-uv.y)/0.15);
+      }        
+      return edgeIntensityX*edgeIntensityY;
+  }
+
+  vec4 scanLine( in vec4 c, in float y ) 
+  {
+    float scanLines = 280.0;
+      float intensity = 0.8 + 0.2 * sin(y * scanLines * 2.0*PI);
+      vec4 result = vec4(intensity * c.rgb, 1.0);
+      return result;
+  }
+
+  vec4 gridTexture(in vec2 uv)
+  {
+      if(uv.y < 0.0)
+      {
+        return vec4(0.0,0.0,0.0,0.0);
+      }
+      float thickness = 0.15;
+    float speed = 1.5;
+      
+      float xPhase = mod(6.0*uv.x-speed*cc_time.x*0.5, 1.0);
+      float yPhase = mod(6.0*uv.y+speed*cc_time.x, 1.0);
+              
+      float xIntensity = max(0.0, 1.0-abs(0.5-xPhase)/thickness);
+      float yIntensity = max(0.0, 1.0-abs(0.5-yPhase)/thickness);
+      
+      vec4 color = vec4(0.3, 0.7, 1.0, 1.0);
+      
+      vec4 result = (yIntensity+xIntensity)*color;
+    return result;
+  }
+
+  vec4 backgroundNoise(in vec2 uv)
+  {
+      vec4 bottomColor = vec4(0.8, 0.2, 1.0, 1.0); 
+      vec4 topColor = vec4(1.0, 0.0, 0.5, 1.0);
+      float intensity = 0.25;
+      
+      uv = uv*3.0;
+      uv.x += cc_time.x*13.0;
+      uv.y += cc_time.x*7.0;
+      float noiseSample = texture(noiseMap, uv).r;
+      
+      vec4 result = bottomColor + noiseSample * topColor;
+      result.rgb *= intensity;
+    return result;   
+  }
+
+  float line(float center, float size, float edge, float y) {
+    return max(
+          max(
+            smoothstep(center - size - edge, center - size, y) *
+              smoothstep(center + size + edge, center + size, y),
+            smoothstep(center + size + edge - 1.0, center + size - 1.0, y)
+          ),
+          smoothstep(center - size + 1.0 - edge, center - size + 1.0, y)
+      );
+  }
+
+  vec4 sun(in vec2 uv)        
+  {
+      
+      vec2 fragCoord = vec2(cc_nativeSize.x*uv.x,cc_nativeSize.y*uv.y);
+      vec2 texelSize = vec2(1.0 / cc_nativeSize.x, 1.0 / cc_nativeSize.y);
+      
+      vec2 sunCenter = vec2(0.5*cc_nativeSize.x,0.55*cc_nativeSize.y);
+      float sunRadius = 0.3 * cc_nativeSize.y;
+      float horizon = 0.42;
+
+      float bloomIntensity = 0.4;
+      vec4 bloom = vec4(1.0, 1.0, 0.4, bloomIntensity);
+      float bloomRadius = 1.4 * sunRadius;
+      
+      float dist = distance(fragCoord, sunCenter);
+      
+      // get a 0 -> 1 value within our sun 
+      float sunValue = smoothstep(0.2, 0.63, uv.y-horizon*0.25);
+      // line size increases the closer we are to the bottom of the sun
+      float lineSize = floor(mix(80.0, 0.0, sunValue)) * texelSize.y;
+
+      // line speed ( 1 - to make it go down)
+      float lineInt = 1.0 - fract(cc_time.x * 0.5);
+      
+      // line count
+      float lineY = fract(uv.y * 14.0);
+      
+      // select our lines, invert so that active lines = 0
+      float lines = 1.0 - line(lineInt, lineSize, 0.05, lineY);
+      
+      // cutoff the top lines
+      lines = max(lines, step(0.75, uv.y));
+      
+      vec4 color1 = vec4(1.0,1.0,0.0,1.0);
+      vec4 color2 = vec4(1.0,0.3,0.3,1.0);
+        
+      float intensity = 1.0 - (dist-sunRadius)/(bloomRadius-sunRadius);
+      bloom.a *= intensity*intensity;
+      
+      if(uv.y > horizon && dist < sunRadius)
+      {
+          vec4 sunColor = mix(color2, color1, 0.1+2.0*(uv.y-0.5));
+        return mix((bloom*(lines+0.30)), sunColor, lines);
+      }
+      else if(uv.y > horizon && dist < bloomRadius)
+      {
+          return (bloom*1.2);
+      }
+        
+      
+      return vec4(0.0,0.0,0.0,0.0);
+  }
+
+  // Get uv of the plane for laser texture
+  vec2 planeProjection(in vec2 uv)
+  {
+    vec3 eye = vec3(0.0, -0.25, 0.0);
+      float viewPortZ = 0.5;
+      float viewPortH = 2.0;
+      float viewPortW = viewPortH * cc_nativeSize.x / cc_nativeSize.y;
+      vec2 center = vec2(viewPortW/2.0, viewPortH/2.0);
+      
+      vec2 dir = (vec2(uv.x*viewPortW, uv.y*viewPortH) - center) / viewPortZ; // (dx,dy) per unit of z 
+      
+      
+      // Intersecting (x,z) plane in y=0.0
+      float zIntersect = eye.y / dir.y;
+      float xIntersect = zIntersect * dir.x;
+              
+      vec2 planeUv = vec2(xIntersect, zIntersect);
+
+      if(planeUv.y > 1.0)
+      {
+        planeUv.y = -1.0;
+      }
+      
+      return planeUv;
+  }
+
+  vec4 textureIChannel1(vec2 uv)
+  {
+      vec2 planeUv = planeProjection(uv);
+      vec4 sample1 = gridTexture(planeUv+vec2(cc_time.x/8.0,0.01));
+      vec4 sample2 = gridTexture(planeUv+vec2(cc_time.x/8.0,0.0));
+      vec4 sample3 = gridTexture(planeUv+vec2(cc_time.x/8.0,-0.01));
+      vec4 gridColor = (0.5*sample1+sample2+0.5*sample3)/2.0;
+      vec4 bgColor = backgroundNoise(uv);    
+      vec4 sunColor = sun(uv);
+      bgColor.rgb += sunColor.rgb * sunColor.a;
+      
+      return gridColor + bgColor;
+  }
+
+  vec4 textureIChannel0(vec2 uv){
+      vec4 color = textureIChannel1(uv);
+      color = scanLine(color, uv.y-cc_time.x*0.01);
+      return color;
+  }
+
+  vec4 mainImage(vec2 UV)
+  {
+    // Deform like old CRT, bulge in the middle
+    vec2 uv = deformUv(UV);
+  
+    // Take multiple samples to displace different color channels
+    vec4 sample1 = textureIChannel0(vec2(uv.x-0.002,uv.y-0.001));
+    vec4 sample2 = textureIChannel0(uv);
+    vec4 sample3 = textureIChannel0(vec2(uv.x+0.002,uv.y+0.001));                           
+    vec4 color = vec4(0.5*sample1.r+0.5*sample2.r, 
+                        0.25*sample1.g+0.5*sample2.g+0.25*sample3.g, 
+                        0.5*sample2.b+0.5*sample3.b, 
+                        1.0);
+      
+    // Fade around the edges        
+    color.rgb *= edgeIntensity(uv);
+        
+    return color;
+  }
+
+  vec4 frag () {
+    vec4 o = vec4(1, 1, 1, 1);
+
+    // o *= texture(cc_spriteTexture, uv0);
+
+    o *= color;
+    o *= mainColor;
+
+    o *= mainImage(1. - uv0);
+    
+    return o;
+  }
+}%
+

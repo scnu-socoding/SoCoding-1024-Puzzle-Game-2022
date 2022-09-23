@@ -1,7 +1,7 @@
 {
   "splash-setting": {
     "displayWatermark": false,
-    "url": "C:\\MYD\\WORKS\\CODE\\CocosPrjs\\SoCoding-1024-Puzzle-Game-2022\\assets\\resources\\images\\logo\\socoding.png",
+    "url": "project://assets/resources/images/logo/socoding.png",
     "clearColor": {
       "x": 0.12941176470588237,
       "y": 0.12941176470588237,

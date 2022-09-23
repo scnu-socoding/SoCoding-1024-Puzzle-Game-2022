@@ -1,4 +1,4 @@
-import { Camera, EventTouch, log, Node, physics, PhysicsSystem, randomRangeInt, tween, TweenEasing, v3 } from "cc";
+import { assetManager, Camera, EventTouch, log, Node, physics, PhysicsSystem, randomRangeInt, tween, TweenEasing, v3 } from "cc";
 
 export class Util {
 
@@ -65,6 +65,28 @@ export class Util {
             node.destroy();
             callback && callback();
         }).start();
+    }
+
+    public static getQueryVariable(): object {
+        let obj = Object.create(null);
+
+        if (!window?.location) {
+            return obj;
+        }
+
+        let query = window.location.search.substring(1);
+        let vars = query.split("&");
+        for (let i = 0; i < vars.length; i++) {
+            let pair = vars[i].split("=");
+            obj[pair[0]] = pair[1];
+        }
+        return obj;
+    }
+
+    public static getSceneURLs() {
+        let urls = [];
+        assetManager.bundles.get('main').config.scenes.forEach((v) => { urls.push(v.url) })
+        return urls;
     }
 }
 
