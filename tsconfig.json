@@ -5,9 +5,10 @@
   "compilerOptions": {
     "strict": false,
     "lib": [
-      "es2015",
-      "es2017",
-      "dom"
+      "ES2015",
+      "ES2017",
+      "ES5",
+      "DOM"
     ]
   }
 }

@@ -1,4 +1,4 @@
-import { _decorator, Component, Node, director, Label, Sprite, assetManager, view } from 'cc';
+import { _decorator, Component, Node, director, Label, Sprite, assetManager, view, PhysicsSystem2D } from 'cc';
 import { Util } from './scripts/util/Util';
 const { ccclass, property } = _decorator;
 
@@ -19,6 +19,7 @@ export class Index extends Component {
 
     onLoad() {
         view.resizeWithBrowserSize(true);
+        PhysicsSystem2D.instance.enable = false;
     }
 
     update(deltaTime: number) {
