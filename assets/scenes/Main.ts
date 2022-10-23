@@ -19,6 +19,9 @@ export class Main extends Component {
     @property(Label)
     public mUUIDLabel: Label = null;
 
+    @property(Label)
+    public mRankLabel: Label = null;
+
     @property(Prefab)
     public puzzleBoxPrefab: Prefab = null;
 
@@ -37,8 +40,16 @@ export class Main extends Component {
     @property(Sprite)
     public mSplashBg: Sprite = null;
 
+    @property(Node)
+    rigNode: Node = null;
+
+    @property(Node)
+    subNode: Node = null;
+
 
     started = false;
+
+    public static instance: Main = null;
 
     public static infoLabel: Label = null;
     public static uuidLabel: Label = null;
@@ -50,7 +61,9 @@ export class Main extends Component {
     start() {
         PhysicsSystem2D.instance.enable = false;
         this.updateTimeLable();
-        this.schedule(this.updateTimeLable, 1000, macro.REPEAT_FOREVER, 0);
+        this.schedule(() => this.updateTimeLable(), 1000, macro.REPEAT_FOREVER, 0);
+
+        Main.instance = this;
 
         Main.infoLabel = this.mInfoLabel;
         Main.uuidLabel = this.mUUIDLabel;
@@ -73,11 +86,18 @@ export class Main extends Component {
         //     }
         // });
 
+        this.getPuzzles();
+
+    }
+
+    getPuzzles() {
         (async () => {
             let uuid = WebUtil.getCookie('uuid');
             Main.UUID = uuid;
 
             if (uuid) {
+
+                this.subNode.active = true;
                 let list = await Main.getProblemList(uuid);
                 if (!list.problems) {
                     return;
@@ -100,6 +120,11 @@ export class Main extends Component {
                     let puzzleBox: PuzzleBox = node.getComponent(PuzzleBox);
                     puzzleBox.updateBasicAfterStart(data);
                 }
+
+                this.mInfoLabel.string = JSON.stringify(await Main.getInfo(uuid));
+                this.mRankLabel.string = JSON.stringify(await Main.my_rank(uuid));
+            } else {
+                this.rigNode.active = true;
             }
         })();
     }
@@ -134,7 +159,7 @@ export class Main extends Component {
     }
 
     update(deltaTime: number) {
-
+        this.updateTimeLable();
     }
 
     initInputTag() {
@@ -186,7 +211,7 @@ export class Main extends Component {
 
     public static async updateInfo(uuid: string, email: string, phone: string, student_code: string) {
         const url = 'https://1024.hunyl.com/user/update';
-        let data = "uuid=" + uuid + "&email=" + email + "&phone=" + phone + "&student_code=" + student_code;
+        let data = encodeURI("uuid=" + uuid + "&email=" + email + "&phone=" + phone + "&student_code=" + student_code);
 
         try {
             let json = await WebUtil.postData(url, data);
@@ -215,7 +240,7 @@ export class Main extends Component {
 
             console.log(json);
 
-            return JSON.stringify(json);
+            return json;
 
         } catch (error) {
             return "网络错误";
@@ -263,7 +288,7 @@ export class Main extends Component {
 
             console.log(json);
 
-            return json;
+            return json.message;
 
         } catch (error) {
             return "网络错误";
@@ -309,9 +334,24 @@ export class Main extends Component {
         let uuid = WebUtil.getCookie('uuid');
         try {
             Util.copyToClip(uuid);
-            Main.alert("复制到剪贴板了捏");
+            Main.alert("token 复制到剪贴板了捏，请一定要妥善保管，不要泄露给其他人");
         } catch (e) {
             Main.alert("复制失败" + e);
+        }
+    }
+
+
+    public static activeUpdateInfo() {
+        Main.alert("要输入真实信息哦，不然没办法验证你的身份，也没办法联系你哦");
+
+        let email = prompt("请输入你的邮箱");
+        let phone = prompt("请输入你的手机号");
+        let student_code = prompt("请输入你的学号");
+
+        if (email && phone && student_code) {
+            Main.updateInfo(Main.UUID, email, phone, student_code).then((message) => {
+                Main.alert(message);
+            });
         }
     }
 }

@@ -67,11 +67,21 @@ export class RigisterButton extends Component {
 
             let message = await Main.register(this.textEdit.string);
             Main.alert(message);
-            
+
             uuid = Main.UUID;
 
             Main.uuidLabel.string = "token{" + uuid + "}";
             Main.infoLabel.string = await Main.getInfo(uuid);
+
+            Main.instance.pageView.scrollToPage(0, 2);
+            this.scheduleOnce(() => {
+                Main.instance.rigNode.active = false;
+                Main.instance.subNode.active = true;
+
+                Main.instance.getPuzzles();
+            }, 2);
+
+            Main.activeUpdateInfo();
         }
         else if (gongde > 70) {
             this.label.string = "看你那么努力\n再点十次就给你注册账号";

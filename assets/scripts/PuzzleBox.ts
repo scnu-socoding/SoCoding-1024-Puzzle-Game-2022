@@ -17,6 +17,8 @@ export class PuzzleBox extends Component {
     @property(Sprite)
     sprite: Sprite = null;
 
+    basicData: any = null;
+
     data: {
         "code"?: number,
         "problem_id"?: number,
@@ -47,6 +49,8 @@ export class PuzzleBox extends Component {
     }
 
     updateBasic(data) {
+
+        this.basicData = data;
 
         this.label.string = `#${data.problem_id}: ${data.problem_title}`;
         this.label.updateRenderData();
@@ -104,7 +108,7 @@ export class PuzzleBox extends Component {
 
     }
 
-    onClick() {
+    async onClick() {
 
         if (Main.selectPuzzleNode.children.length === 1) {
             if (Main.selectPuzzleNode.children[0] !== this.node) {
@@ -133,6 +137,17 @@ export class PuzzleBox extends Component {
 
             // tween(Main.splashBG).to(1, { color: color(0, 0, 0, 255) }, { easing: 'circOut' }).start();
 
+            //  window.open(this.data.description, '_blank');
+
+            const img = new Image()
+            img.src = this.data.description
+            const newWin = window.open('', '_blank')
+            newWin.document.write(img.outerHTML)
+            newWin.document.title = this.data.title
+            newWin.document.close()
+
+            Main.instance.mRankLabel.string = JSON.stringify(await Main.my_rank(Main.UUID))
+                + JSON.stringify(this.basicData);
 
             tween(this.node).to(1, { position: v3(0, 0, 0) }, { easing: 'circOut' }).start();
             tween(this.node).to(3, { angle: 0 }, { easing: 'circOut' }).start();
