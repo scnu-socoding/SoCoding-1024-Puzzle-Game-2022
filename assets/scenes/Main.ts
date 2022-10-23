@@ -1,4 +1,5 @@
-import { _decorator, Component, Node, Label, PageView, PhysicsSystem2D, macro } from 'cc';
+import { _decorator, Component, Node, Label, PageView, PhysicsSystem2D, macro, Prefab, instantiate } from 'cc';
+import { PuzzleBox } from '../scripts/PuzzleBox';
 import { Util } from '../scripts/util/Util';
 import WebUtil from '../scripts/util/WebUtil';
 const { ccclass, property } = _decorator;
@@ -18,10 +19,17 @@ export class Main extends Component {
     @property(Label)
     public mUUIDLabel: Label = null;
 
+    @property(Prefab)
+    public puzzleBoxPrefab: Prefab = null;
+
+    @property(Node)
+    public puzzleBoxContainer: Node = null;
+
     started = false;
 
     public static infoLabel: Label = null;
     public static uuidLabel: Label = null;
+    public static UUID: string = null;
 
     start() {
         PhysicsSystem2D.instance.enable = false;
@@ -45,6 +53,36 @@ export class Main extends Component {
         //         PhysicsSystem2D.instance.enable = true;
         //     }
         // });
+
+        (async () => {
+            let uuid = WebUtil.getCookie('uuid');
+            Main.UUID = uuid;
+
+            if (uuid) {
+                let list = await Main.getProblemList(uuid);
+                if (!list.problems) {
+                    return;
+                }
+                for (let i of list.problems) {
+                    type ProblemData = {
+                        is_pass: boolean,
+                        pass_count: number,
+                        problem_id: number,
+                        problem_title: string,
+                        template: number
+                    }
+
+                    console.log(i);
+
+                    let data = i as ProblemData;
+
+                    let node: Node = instantiate(this.puzzleBoxPrefab);
+                    this.puzzleBoxContainer.addChild(node);
+                    let puzzleBox: PuzzleBox = node.getComponent(PuzzleBox);
+                    puzzleBox.updateBasicAfterStart(data);
+                }
+            }
+        })();
     }
 
     updateTimeLable() {
@@ -99,6 +137,7 @@ export class Main extends Component {
             let uuid = json.uuid;
 
             uuid && WebUtil.setCookie('uuid', uuid.toString());
+            uuid && (Main.UUID = uuid.toString());
 
             if (uuid) {
                 return "注册成功，你获得了\ntoken{" + uuid + "}\n妥善保管且不要以任何方式泄露给他人";
@@ -162,7 +201,7 @@ export class Main extends Component {
 
             console.log(json);
 
-            return JSON.stringify(json);
+            return json;
 
         } catch (error) {
             return "网络错误";

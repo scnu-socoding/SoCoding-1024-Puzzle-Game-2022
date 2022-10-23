@@ -67,6 +67,8 @@ export class RigisterButton extends Component {
 
             let message = await Main.register(this.textEdit.string);
             Main.alert(message);
+            
+            uuid = Main.UUID;
 
             Main.uuidLabel.string = "token{" + uuid + "}";
             Main.infoLabel.string = await Main.getInfo(uuid);
