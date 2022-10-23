@@ -1,4 +1,4 @@
-import { _decorator, Component, Node, Label, PageView, PhysicsSystem2D, macro, Prefab, instantiate } from 'cc';
+import { _decorator, Component, Node, Label, PageView, PhysicsSystem2D, macro, Prefab, instantiate, Sprite } from 'cc';
 import { PuzzleBox } from '../scripts/PuzzleBox';
 import { Util } from '../scripts/util/Util';
 import WebUtil from '../scripts/util/WebUtil';
@@ -25,11 +25,27 @@ export class Main extends Component {
     @property(Node)
     public puzzleBoxContainer: Node = null;
 
+    @property(Label)
+    public startButtonLabel: Label = null;
+
+    @property(Node)
+    mPuzzles: Node = null;
+
+    @property(Node)
+    mSelectPuzzle: Node = null;
+
+    @property(Sprite)
+    public mSplashBg: Sprite = null;
+
+
     started = false;
 
     public static infoLabel: Label = null;
     public static uuidLabel: Label = null;
     public static UUID: string = null;
+    public static puzzlesNode: Node = null;
+    public static selectPuzzleNode: Node = null;
+    public static splashBG: Sprite = null;
 
     start() {
         PhysicsSystem2D.instance.enable = false;
@@ -38,6 +54,9 @@ export class Main extends Component {
 
         Main.infoLabel = this.mInfoLabel;
         Main.uuidLabel = this.mUUIDLabel;
+        Main.puzzlesNode = this.mPuzzles;
+        Main.selectPuzzleNode = this.mSelectPuzzle;
+        Main.splashBG = this.mSplashBg;
 
         Main.updateALLInfoNode();
 
@@ -95,8 +114,19 @@ export class Main extends Component {
     onStartButtonClick() {
         // 
 
-        this.started = true;
-        PhysicsSystem2D.instance.enable = true;
+
+        if (this.started === true) {
+            this.startButtonLabel.string = "启动";
+            this.started = false;
+            PhysicsSystem2D.instance.enable = false;
+        } else {
+            this.startButtonLabel.string = "暂停";
+            this.started = true;
+            PhysicsSystem2D.instance.enable = true;
+        }
+
+
+
     }
 
     onSubmitButtonClick() {
