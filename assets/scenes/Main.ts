@@ -1,4 +1,5 @@
-import { _decorator, Component, Node, Label, PageView, PhysicsSystem2D } from 'cc';
+import { _decorator, Component, Node, Label, PageView, PhysicsSystem2D, macro } from 'cc';
+import { Util } from '../scripts/util/Util';
 import WebUtil from '../scripts/util/WebUtil';
 const { ccclass, property } = _decorator;
 
@@ -11,14 +12,39 @@ export class Main extends Component {
     @property(PageView)
     pageView: PageView = null;
 
+    @property(Label)
+    public mInfoLabel: Label = null;
+
+    @property(Label)
+    public mUUIDLabel: Label = null;
+
+    started = false;
+
+    public static infoLabel: Label = null;
+    public static uuidLabel: Label = null;
+
     start() {
         PhysicsSystem2D.instance.enable = false;
         this.updateTimeLable();
-        this.schedule(this.updateTimeLable, 1000);
+        this.schedule(this.updateTimeLable, 1000, macro.REPEAT_FOREVER, 0);
 
-        let uuid = WebUtil.getCookie('uuid');
+        Main.infoLabel = this.mInfoLabel;
+        Main.uuidLabel = this.mUUIDLabel;
 
+        Main.updateALLInfoNode();
 
+        // this.pageView.node.on(PageView.EventType.SCROLL_BEGAN, (event) => {
+        //     if (this.started) {
+        //         PhysicsSystem2D.instance.enable = false;
+        //     }
+
+        // });
+
+        // this.pageView.node.on(PageView.EventType.SCROLL_ENDED, (event) => {
+        //     if (this.started) {
+        //         PhysicsSystem2D.instance.enable = true;
+        //     }
+        // });
     }
 
     updateTimeLable() {
@@ -31,6 +57,7 @@ export class Main extends Component {
     onStartButtonClick() {
         // 
 
+        this.started = true;
         PhysicsSystem2D.instance.enable = true;
     }
 
@@ -50,6 +77,15 @@ export class Main extends Component {
         }
     }
 
+    public static async updateALLInfoNode() {
+        let uuid = WebUtil.getCookie('uuid');
+
+        if (uuid) {
+            Main.uuidLabel.string = "token{" + uuid + "}";
+            Main.infoLabel.string = await Main.getInfo(uuid);
+        }
+    }
+
     public static async register(username: string) {
         const url = 'https://1024.hunyl.com/user/register';
         let data = "username=" + username;
@@ -63,6 +99,10 @@ export class Main extends Component {
             let uuid = json.uuid;
 
             uuid && WebUtil.setCookie('uuid', uuid.toString());
+
+            if (uuid) {
+                return "注册成功，你获得了\ntoken{" + uuid + "}\n妥善保管且不要以任何方式泄露给他人";
+            }
 
             if (!message) {
                 return "不知道为啥，注册失败了";
@@ -98,7 +138,7 @@ export class Main extends Component {
     }
 
     public static async getInfo(uuid: string) {
-        const url = 'https://1024.hunyl.com/user/update';
+        const url = 'https://1024.hunyl.com/user/info';
         let data = "uuid=" + uuid;
 
         try {
@@ -165,7 +205,7 @@ export class Main extends Component {
         const url = 'https://1024.hunyl.com/rank/list';
 
         try {
-            let json = await WebUtil.getData(url, '');
+            let json = await WebUtil.getData(url);
 
             console.log(json);
 
@@ -194,6 +234,16 @@ export class Main extends Component {
 
     public static alert(str: string) {
         alert(str);
+    }
+
+    copyUUID() {
+        let uuid = WebUtil.getCookie('uuid');
+        try {
+            Util.copyToClip(uuid);
+            Main.alert("复制到剪贴板了捏");
+        } catch (e) {
+            Main.alert("复制失败" + e);
+        }
     }
 }
 

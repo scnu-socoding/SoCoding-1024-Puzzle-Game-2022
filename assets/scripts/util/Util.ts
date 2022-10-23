@@ -88,5 +88,28 @@ export class Util {
         assetManager.bundles.get('main').config.scenes.forEach((v) => { urls.push(v.url) })
         return urls;
     }
+
+    public static copyToClip1(content) {
+        var aux = document.createElement("input");
+        aux.setAttribute("value", content);
+        document.body.appendChild(aux);
+        aux.select();
+        document.execCommand("copy");
+        document.body.removeChild(aux);
+    }
+
+    public static async copyToClip2(content) {
+        await navigator.clipboard.writeText(content)
+    }
+
+    public static copyToClip(content) {
+        try {
+            this.copyToClip1(content);
+        }
+        catch {
+            this.copyToClip2(content);
+        }
+    }
+
 }
 

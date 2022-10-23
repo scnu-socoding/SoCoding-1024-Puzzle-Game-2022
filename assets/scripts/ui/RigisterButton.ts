@@ -58,7 +58,7 @@ export class RigisterButton extends Component {
 
         let gongde = 114514 - this.muyu - 1;
 
-        if (gongde > 114514) {
+        if (gongde > 80) {
             let uuid = WebUtil.getCookie('uuid');
             if (uuid) {
                 Main.alert("你不需要再注册了");
@@ -67,7 +67,26 @@ export class RigisterButton extends Component {
 
             let message = await Main.register(this.textEdit.string);
             Main.alert(message);
-        } else {
+
+            Main.uuidLabel.string = "token{" + uuid + "}";
+            Main.infoLabel.string = await Main.getInfo(uuid);
+        }
+        else if (gongde > 70) {
+            this.label.string = "看你那么努力\n再点十次就给你注册账号";
+        }
+        else if (gongde > 40) {
+            this.label.string = "功德: " + gongde.toString() + "/1145141919810\n" + "谁让你点那么快了？";
+        }
+        else if (gongde > 30) {
+            this.label.string = "功德: " + gongde.toString() + "/114.514\n" + "嗯，看你那么努力";
+        }
+        else if (gongde > 20) {
+            this.label.string = "你真的达不到那么多功德\n" + "没用的，别点了";
+        }
+        else if (gongde > 10) {
+            this.label.string = "功德: " + gongde.toString() + "/114514\n" + "你已经很努力了，不要再点了";
+        }
+        else {
             this.label.string = "功德: " + gongde.toString() + "/114514";
         }
     }
